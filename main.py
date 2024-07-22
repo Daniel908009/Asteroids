@@ -24,8 +24,6 @@ class Player(pygame.sprite.Sprite):
         # rotating the player image according to the angle
         self.image = pygame.transform.rotate(self.image, self.per_angle)
         self.per_angle = 0
-
-        print(self.x, self.y)
         
         # drawing the player
         screen.blit(self.image, self.rect)
@@ -34,36 +32,97 @@ class Player(pygame.sprite.Sprite):
         self.direction = direction
 
     def move(self, speed):
-        if player.direction == "left":
+        # new movement code
+        if self.direction == "left":
             self.horizontal_speed -= speed
-        elif player.direction == "right":
+            #self.vertical_speed = 0
+        elif self.direction == "right":
             self.horizontal_speed += speed
-        elif player.direction == "up":
+            #self.vertical_speed = 0
+        elif self.direction == "up":
             self.vertical_speed -= speed
-        elif player.direction == "down":
+            #self.horizontal_speed = 0
+        elif self.direction == "down":
             self.vertical_speed += speed
+            #self.horizontal_speed = 0
 
+        # slowing down the player in all speeds
+        if self.horizontal_speed > 0:
+            self.horizontal_speed -= resistance
+        elif self.horizontal_speed < 0:
+            self.horizontal_speed += resistance
+        if self.vertical_speed > 0:
+            self.vertical_speed -= resistance
+        elif self.vertical_speed < 0:
+            self.vertical_speed += resistance
+
+           # old movement code
+        #if player.direction == "left":
+        #    self.horizontal_speed -= speed
+        #elif player.direction == "right":
+        #    self.horizontal_speed += speed
+        #elif player.direction == "up":
+        #    self.vertical_speed -= speed
+        #elif player.direction == "down":
+        #    self.vertical_speed += speed
+
+        # rounding the speed to 2 decimal places
+        self.horizontal_speed = round(self.horizontal_speed, 2)
+        self.vertical_speed = round(self.vertical_speed, 2)
+
+        #print(self.horizontal_speed, self.vertical_speed)
         self.y += self.vertical_speed
         self.x += self.horizontal_speed
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
 # bullet class
 class Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, angle, image):
+    def __init__(self, x, y, angle, image, speed=5):
         pygame.sprite.Sprite.__init__(self)
         self.x = x
         self.y = y
         self.angle = angle + 180
+        self.horizontal_speed = 0
+        self.vertical_speed = 0
+        # based on the direction of the player, the bullet will move in that direction and keep moving sideways, because player was moving sideways
+        if player.angle == 0:
+            self.horizontal_speed = player.horizontal_speed
+            self.vertical_speed =  speed
+        elif player.angle == 90:
+            self.horizontal_speed = speed
+            self.vertical_speed = player.vertical_speed
+        elif player.angle == 180:
+            self.horizontal_speed = player.horizontal_speed
+            self.vertical_speed = speed
+        elif player.angle == 270:
+            self.horizontal_speed = speed
+            self.vertical_speed = player.vertical_speed
+
+            # failed attempt
+        #if player.direction == "left":
+        #    self.vertical_speed = - speed
+        #    self.horizontal_speed = player.horizontal_speed
+        #elif player.direction == "right":
+        #    self.vertical_speed = speed
+        #    self.horizontal_speed = player.horizontal_speed
+        #elif player.direction == "up":
+        #    self.horizontal_speed = - speed
+        #    self.vertical_speed = player.vertical_speed
+        #elif player.direction == "down":
+        #    self.horizontal_speed = speed
+        #    self.vertical_speed = player.vertical_speed
+
+        #print(self.horizontal_speed, self.vertical_speed)
         self.image = image
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self):
         screen.blit(self.image, self.rect)
 
-    def move(self, speed):
-        #print(self.angle)
-        self.x += math.sin(math.radians(self.angle)) * speed
-        self.y += math.cos(math.radians(self.angle)) * speed
+    def move(self):
+        #print(self.horizontal_speed, self.vertical_speed)
+        self.x += math.sin(math.radians(self.angle)) * self.horizontal_speed
+        self.y += math.cos(math.radians(self.angle)) * self.vertical_speed
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
 # asteroid class
@@ -71,12 +130,25 @@ class Asteroid(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
         self.spawn_point = random.choice(spawn_points)
-        #print(self.spawn_point)
         self.x = self.spawn_point[0]
         self.y = self.spawn_point[1]
         self.x = self.x
         self.y = self.y
-        self.angle = random.randint(0, 360)
+        # depending on the spawn point, the angle options will be different
+        #print(self.x, self.y)
+        if self.x <= 0:
+            #print("left")
+            self.angle = random.randint(0, 180)
+        elif self.x >= 800:
+            #print("right")
+            self.angle = random.randint(180, 359)
+        elif self.y <= 0:
+            #print("up")
+            self.angle = random.randint(90, 270)
+        elif self.y >= 600:
+            #print("down")
+            self.angle = random.randint(-90, 90)
+
         self.rotation_speed = random.randint(-3,3)
         self.image = random.choice(resized_asteroid_images)
         self.rect = self.image.get_rect(center=(self.x, self.y))
@@ -87,7 +159,6 @@ class Asteroid(pygame.sprite.Sprite):
         if self.angle >= 360 or self.angle <= -360:
             self.angle = 0
         self.rect = self.image.get_rect(center=(self.x, self.y))
-        print(self.angle)
 
     def draw(self):
         screen.blit(self.image, self.rect)
@@ -101,8 +172,11 @@ class Asteroid(pygame.sprite.Sprite):
 class Ufo(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
-        self.x = random.randint(0, 800)# currently they spawn inside the screen, but I will make them spaw outside the screen later on
-        self.y = random.randint(0, 600)# currently they spawn inside the screen, but I will make them spaw outside the screen later on
+        pos = random.choice(spawn_points)
+        x = pos[0]
+        y = pos[1]
+        self.x = x
+        self.y = y
         self.angle = 0
         self.image = resized_ufo_image
         self.rect = self.image.get_rect(center=(self.x, self.y))
@@ -114,8 +188,7 @@ class Ufo(pygame.sprite.Sprite):
         # here I will implement some more complex movement later on
         pass
 
-
-# Functions
+    # Functions
 
 # function to rotate the asteroids
 def rotation():
@@ -126,11 +199,12 @@ def rotation():
 
 # function to handle the asteroids
 def asteroid_loop():
-    #rotate_thread = threading.Thread(target=rotation)
+    global running, asteroids, clock
     while running:
-    #    if not rotate_thread.is_alive():
-    #        rotate_thread.start()
-        # checking if the asteroids have hit the outer walls + 300 pixels of the screen
+        if len(asteroids)< 3:
+            asteroid = Asteroid()
+            asteroids.add(asteroid)
+
         for asteroid in asteroids:
             if asteroid.x <= 0 - 300 + asteroid.image.get_width() / 2 or asteroid.x >= 800 + 300 - asteroid.image.get_width() / 2 or asteroid.y <= 0 - 300 + asteroid.image.get_height() / 2 or asteroid.y >= 600 + 300 - asteroid.image.get_height() / 2:
                 asteroids.remove(asteroid)
@@ -140,7 +214,6 @@ def asteroid_loop():
             asteroid.move(random.randint(1, 3))
 
         clock.tick(60)
-
 
 # initialize pygame
 pygame.init()
@@ -160,14 +233,12 @@ for i in range(200//10):
         spawn_points.append((i*10, 600+j*10))
         spawn_points.append((i*10, -600+j*10))
 
-print("spawn points set up")
-
-
 # creating the player
 player_image = pygame.image.load("spaceship.png")
 resized_player_image = pygame.transform.scale(player_image, (64, 64))
 player = Player(400, 300, resized_player_image, 64)
-speed = 0.5
+speed = 7
+resistance = 0.2
 
 # setting up the bullets
 bullet_image = pygame.image.load("laser.png")
@@ -224,24 +295,17 @@ while running:
             elif event.key == pygame.K_SPACE:
                 bullet = Bullet(player.x, player.y, player.angle, resized_bullet_image)
                 bullets.add(bullet)
-            elif event.key == pygame.K_l:
-                asteroid = Asteroid()
-                asteroids.add(asteroid)
             elif event.key == pygame.K_k:
                 ufo = Ufo()
                 ufos.add(ufo)
             elif event.key == pygame.K_q:
-                print("q key pressed")
-                player.angle += 45
-                player.per_angle += 45
-                print(player.angle)
-                print(player.per_angle)
+                player.angle += 90
+                player.per_angle += 90
                 if player.angle == 360 or player.angle == -360:
                     player.angle = 0
             elif event.key == pygame.K_e:
-                print("e key pressed")
-                player.angle -= 45
-                player.per_angle -= 45
+                player.angle -= 90
+                player.per_angle -= 90
                 if player.angle == 360 or player.angle == -360:
                     player.angle = 0
 
@@ -250,7 +314,7 @@ while running:
 
     # moving the bullets
     for bullet in bullets:
-        bullet.move(8)
+        bullet.move()
 
     # moving the ufos
     for ufo in ufos:
@@ -286,18 +350,22 @@ while running:
             if bullet.rect.colliderect(ufo.rect):
                 bullets.remove(bullet)
                 ufos.remove(ufo)
-    
-    #print(player.angle)
+
+    # checking if the player has hit the asteroids
+    for asteroid in asteroids:
+        if player.rect.colliderect(asteroid.rect):
+            asteroids.remove(asteroid)
+            print("hit")
 
     # drawing the player
     player.draw()
+    player.change_direction("")
 
     # drawing the bullets
     bullets.draw(screen)
 
     # drawing the asteroids, asteroids have to be drawn in the main loop, to keep them sync
     asteroids.draw(screen)
-    #print(len(asteroids))
 
     # drawing the ufos
     ufos.draw(screen)
