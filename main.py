@@ -32,40 +32,77 @@ class Player(pygame.sprite.Sprite):
         self.direction = direction
 
     def move(self, speed):
+        #(player.angle)
+        #print(speed)
         # new movement code
-        if self.direction == "left":
-            self.horizontal_speed -= speed
-            #self.vertical_speed = 0
-        elif self.direction == "right":
-            self.horizontal_speed += speed
-            #self.vertical_speed = 0
-        elif self.direction == "up":
-            self.vertical_speed -= speed
-            #self.horizontal_speed = 0
-        elif self.direction == "down":
-            self.vertical_speed += speed
-            #self.horizontal_speed = 0
+        if speed[0] != 0 or speed[1] != 0:
+            #print("moving")
+            if self.direction == "left":
+                self.horizontal_speed -= speed[0]
+            elif self.direction == "right":
+                self.horizontal_speed += speed[0]
+            elif self.direction == "up":
+                self.vertical_speed -= speed[1]
+            elif self.direction == "down":
+                self.vertical_speed += speed[1]
 
-        # slowing down the player in all speeds
-        if self.horizontal_speed > 0:
-            self.horizontal_speed -= resistance
-        elif self.horizontal_speed < 0:
-            self.horizontal_speed += resistance
-        if self.vertical_speed > 0:
-            self.vertical_speed -= resistance
-        elif self.vertical_speed < 0:
-            self.vertical_speed += resistance
+        # slowing down the player, if a key managing the speed of the direction is not pressed
+        if player.angle == 0 or player.angle == 180 or player.angle == -180:
+            if self.horizontal_speed > 0 and speed[0] == 0:
+                self.horizontal_speed -= resistance
+            elif self.horizontal_speed < 0 and speed[0] == 0:
+                self.horizontal_speed += resistance
+            if self.vertical_speed > 0 and speed[1] == 0:
+                self.vertical_speed -= resistance
+            elif self.vertical_speed < 0 and speed[1] == 0:
+                self.vertical_speed += resistance
+        elif player.angle == 90 or player.angle == -90:
+            if self.vertical_speed > 0 and speed[1] == 0:
+                self.vertical_speed -= resistance
+            elif self.vertical_speed < 0 and speed[1] == 0:
+                self.vertical_speed += resistance
+            if self.horizontal_speed > 0 and speed[0] == 0:
+                self.horizontal_speed -= resistance
+            elif self.horizontal_speed < 0 and speed[0] == 0:
+                self.horizontal_speed += resistance
+        elif player.angle == 270 or player.angle == -270:
+            if self.vertical_speed > 0 and speed[1] == 0:
+                self.vertical_speed -= resistance
+            elif self.vertical_speed < 0 and speed[1] == 0:
+                self.vertical_speed += resistance
+            if self.horizontal_speed > 0 and speed[0] == 0:
+                self.horizontal_speed -= resistance
+            elif self.horizontal_speed < 0 and speed[0] == 0:
+                self.horizontal_speed += resistance
+        else:
+            if self.horizontal_speed > 0 and speed[0] == 0:
+                self.horizontal_speed -= resistance
+            elif self.horizontal_speed < 0 and speed[0] == 0:
+                self.horizontal_speed += resistance
+            if self.vertical_speed > 0 and speed[1] == 0:
+                self.vertical_speed -= resistance
+            elif self.vertical_speed < 0 and speed[1] == 0:
+                self.vertical_speed += resistance
 
-           # old movement code
-        #if player.direction == "left":
-        #    self.horizontal_speed -= speed
-        #elif player.direction == "right":
-        #    self.horizontal_speed += speed
-        #elif player.direction == "up":
-        #    self.vertical_speed -= speed
-        #elif player.direction == "down":
-        #    self.vertical_speed += speed
 
+                # failed attempt to slow down the player, caused unexpected movement
+            #print("slowing down")
+            #print(self.horizontal_speed, self.vertical_speed)
+            #print(speed)
+            #print("moving second")
+            #if self.horizontal_speed > 0 and speed[0] == 0:
+            #    self.horizontal_speed += resistance
+            #    print("slowing down1")
+            #elif self.horizontal_speed < 0 and speed[0] == 0:
+            #    self.horizontal_speed += resistance
+            #    print("slowing down2")
+            #if self.vertical_speed > 0 and speed[1] == 0:
+            #    self.vertical_speed += resistance
+            #    print("slowing down3")
+            #elif self.vertical_speed < 0 and speed[1] == 0:
+            #    self.vertical_speed += resistance
+            #    print("slowing down4")
+        
         # rounding the speed to 2 decimal places
         self.horizontal_speed = round(self.horizontal_speed, 2)
         self.vertical_speed = round(self.vertical_speed, 2)
@@ -74,6 +111,7 @@ class Player(pygame.sprite.Sprite):
         self.y += self.vertical_speed
         self.x += self.horizontal_speed
         self.rect = self.image.get_rect(center=(self.x, self.y))
+        #print(speed)
 
 # bullet class
 class Bullet(pygame.sprite.Sprite):
@@ -86,33 +124,18 @@ class Bullet(pygame.sprite.Sprite):
         self.vertical_speed = 0
         # based on the direction of the player, the bullet will move in that direction and keep moving sideways, because player was moving sideways
         if player.angle == 0:
-            self.horizontal_speed = player.horizontal_speed
+            self.horizontal_speed = 0
             self.vertical_speed =  speed
         elif player.angle == 90:
             self.horizontal_speed = speed
             self.vertical_speed = player.vertical_speed
         elif player.angle == 180:
-            self.horizontal_speed = player.horizontal_speed
+            self.horizontal_speed = 0
             self.vertical_speed = speed
         elif player.angle == 270:
             self.horizontal_speed = speed
             self.vertical_speed = player.vertical_speed
 
-            # failed attempt
-        #if player.direction == "left":
-        #    self.vertical_speed = - speed
-        #    self.horizontal_speed = player.horizontal_speed
-        #elif player.direction == "right":
-        #    self.vertical_speed = speed
-        #    self.horizontal_speed = player.horizontal_speed
-        #elif player.direction == "up":
-        #    self.horizontal_speed = - speed
-        #    self.vertical_speed = player.vertical_speed
-        #elif player.direction == "down":
-        #    self.horizontal_speed = speed
-        #    self.vertical_speed = player.vertical_speed
-
-        #print(self.horizontal_speed, self.vertical_speed)
         self.image = image
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
@@ -135,18 +158,13 @@ class Asteroid(pygame.sprite.Sprite):
         self.x = self.x
         self.y = self.y
         # depending on the spawn point, the angle options will be different
-        #print(self.x, self.y)
         if self.x <= 0:
-            #print("left")
             self.angle = random.randint(0, 180)
         elif self.x >= 800:
-            #print("right")
             self.angle = random.randint(180, 359)
         elif self.y <= 0:
-            #print("up")
             self.angle = random.randint(90, 270)
         elif self.y >= 600:
-            #print("down")
             self.angle = random.randint(-90, 90)
 
         self.rotation_speed = random.randint(-3,3)
@@ -237,7 +255,7 @@ for i in range(200//10):
 player_image = pygame.image.load("spaceship.png")
 resized_player_image = pygame.transform.scale(player_image, (64, 64))
 player = Player(400, 300, resized_player_image, 64)
-speed = 7
+speed = [[],[]]
 resistance = 0.2
 
 # setting up the bullets
@@ -281,17 +299,63 @@ while running:
 
     # checking for events
     for event in pygame.event.get():
+        #print(player.angle)
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
+            # in case ship is pointing up
+            if event.key == pygame.K_a and player.angle == 0:
                 player.change_direction("left")
-            elif event.key == pygame.K_d:
+                speed[0] = 7
+            elif event.key == pygame.K_d and player.angle == 0:
                 player.change_direction("right")
-            elif event.key == pygame.K_w:
+                speed[0] = 7
+            elif event.key == pygame.K_w and player.angle == 0:
                 player.change_direction("up")
-            elif event.key == pygame.K_s:
+                speed[1] = 7
+            elif event.key == pygame.K_s and player.angle == 0:
                 player.change_direction("down")
+                speed[1] = 7
+            # in case ship is pointing right
+            elif event.key == pygame.K_a and player.angle == -90 or player.angle == 90:
+                player.change_direction("up")
+                speed[1] = 7
+            elif event.key == pygame.K_d and player.angle == -90 or player.angle == 90:
+                player.change_direction("down")
+                speed[1] = 7
+            elif event.key == pygame.K_w and player.angle == -90 or player.angle == 90:
+                player.change_direction("right")
+                speed[0] = 7
+            elif event.key == pygame.K_s and player.angle == -90 or player.angle == 90:
+                player.change_direction("left")
+                speed[0] = 7
+            # in case ship is pointing down
+            elif event.key == pygame.K_a and player.angle == -180 or player.angle == 180:
+                player.change_direction("right")
+                speed[0] = 7
+            elif event.key == pygame.K_d and player.angle == -180 or player.angle == 180:
+                player.change_direction("left")
+                speed[0] = 7
+            elif event.key == pygame.K_w and player.angle == -180 or player.angle == 180:
+                player.change_direction("down")
+                speed[1] = 7
+            elif event.key == pygame.K_s and player.angle == -180 or player.angle == 180:
+                player.change_direction("up")
+                speed[1] = 7
+            # in case ship is pointing left
+            elif event.key == pygame.K_a and player.angle == -270 or player.angle == 270:
+                player.change_direction("down")
+                speed[1] = 7
+            elif event.key == pygame.K_d and player.angle == -270 or player.angle == 270:
+                player.change_direction("up")
+                speed[1] = 7
+            elif event.key == pygame.K_w and player.angle == -270 or player.angle == 270:
+                player.change_direction("left")
+                speed[0] = 7
+            elif event.key == pygame.K_s and player.angle == -270 or player.angle == 270:
+                player.change_direction("right")
+                speed[0] = 7
+
             elif event.key == pygame.K_SPACE:
                 bullet = Bullet(player.x, player.y, player.angle, resized_bullet_image)
                 bullets.add(bullet)
@@ -308,6 +372,26 @@ while running:
                 player.per_angle -= 90
                 if player.angle == 360 or player.angle == -360:
                     player.angle = 0
+        if event.type == pygame.KEYUP:
+            if player.angle == 0 or player.angle == 180 or player.angle == -180:
+                if event.key == pygame.K_a or event.key == pygame.K_d:
+                    player.change_direction("")
+                    speed[0] = 0
+                    #print("key up")
+                elif event.key == pygame.K_w or event.key == pygame.K_s:
+                    player.change_direction("")
+                    speed[1] = 0
+                    #print("key up")
+            else:
+                if event.key == pygame.K_w or event.key == pygame.K_s:
+                    player.change_direction("")
+                    speed[0] = 0
+                    #print("key up")
+                elif event.key == pygame.K_a or event.key == pygame.K_d:
+                    player.change_direction("")
+                    speed[1] = 0
+                    #print("key up")
+        
 
     # moving the player in the directions
     player.move(speed)
