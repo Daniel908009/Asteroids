@@ -3,6 +3,7 @@ import pygame
 import random
 import math
 import threading
+import tkinter
 
     # Classes
 # player class
@@ -25,7 +26,7 @@ class Player(pygame.sprite.Sprite):
     def draw(self):
         # rotating the player image according to the angle
         if self.state == "protected":
-            self.image = pygame.transform.scale(pygame.image.load("protected_player.png"), (self.size + 10, self.size + 10))
+            self.image = pygame.transform.scale(pygame.image.load("protected_player.png"), (64, 64))
             self.image = pygame.transform.rotate(self.image, self.angle)
         else:
             self.image = self.real_image
@@ -119,17 +120,12 @@ class Bullet(pygame.sprite.Sprite):
         elif player.angle == 270 or player.angle == -270:
             self.horizontal_speed = speed
             self.vertical_speed = player.vertical_speed
-        #print(self.horizontal_speed, self.vertical_speed)
+        #based on the angle the bullet image will be rotated
+        self.image = pygame.transform.rotate(image, self.angle)
 
-        self.image = image
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self):
-        # rotating the bullet image according to the angle
-        print(self.angle)
-        print("drawing")
-        self.image = pygame.transform.rotate(self.image, self.angle)
-        self.rect = self.image.get_rect(center=(self.x, self.y))
         screen.blit(self.image, self.rect)
 
     def move(self):
@@ -155,11 +151,11 @@ class Asteroid(pygame.sprite.Sprite):
         # depending on the spawn point, the angle options will be different
         if self.x <= 0:
             self.angle = random.randint(0, 180)
-        elif self.x >= 800:
+        elif self.x >= width:
             self.angle = random.randint(180, 359)
         elif self.y <= 0:
             self.angle = random.randint(90, 270)
-        elif self.y >= 600:
+        elif self.y >= height:
             self.angle = random.randint(-90, 90)
 
         self.rotation_speed = random.randint(-3,3)
@@ -208,7 +204,6 @@ class Powerup(pygame.sprite.Sprite):
         pos = random.choice(power_up_spawn_points)
         self.x = pos[0]
         self.y = pos[1]
-        print(self.x, self.y)
         self.speed = random.randint(1, 3)
         self.image = image
         self.rect = self.image.get_rect(center=(self.x, self.y))
@@ -216,33 +211,99 @@ class Powerup(pygame.sprite.Sprite):
         screen.blit(self.image, self.rect)
     def move(self):
         self.y += self.speed
-        #print(self.y)
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     # Functions
 
-# function to rotate the asteroids
-def rotation():
-    while running:
-        for asteroid in asteroids:
-            asteroid.rotate()
-        clock.tick(120)
+# function to create end screen
+def end_screen():
+    end = True
+    global running
+
+    # end screen loop
+    while end:
+        screen.fill((0, 0, 0))
+        font = pygame.font.Font("freesansbold.ttf", 32)
+        text = font.render("Game Over", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(width//2, height//2))
+        screen.blit(text, text_rect)
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                end = False
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    end = False
+                    reset()
+        pygame.display.update()
+
+# function to apply settings
+def apply_settings(window, asteroids_entry):
+    global settings
+    # unpausing the movement of the asteroids and destroying the settings window
+    settings = False
+    window.destroy()
+
+    # resetting the game to apply the settings
+    reset()
+        
+# function to create settings window
+def settings_window():
+    # pausing the movement of the asteroids
+    global settings 
+    settings = True
+
+    # creating the window
+    window = tkinter.Tk()
+    window.title("Settings")
+    window.geometry("400x400")
+    window.resizable(False, False)
+    window.iconbitmap("settings_icon.ico")
+    # creating a main label
+    main_label = tkinter.Label(window, text="Settings", font=("Arial", 20))
+    main_label.pack()
+    # creating a frame for the settings
+    settings_frame = tkinter.Frame(window)
+    settings_frame.pack()
+    # creating a label for the number of asteroids
+    asteroids_label = tkinter.Label(settings_frame, text="Number of asteroids")
+    asteroids_label.grid(row=0, column=0)
+    # creating entry for the number of asteroids
+    e1 = tkinter.StringVar()
+    e1.set(str(len(asteroids)))
+    asteroids_entry = tkinter.Entry(settings_frame, textvariable=e1)
+    asteroids_entry.grid(row=0, column=1)
+        # more settings will be added
+
+    # creating apply button
+    apply_button = tkinter.Button(window, text="Apply", command=lambda: apply_settings(window, asteroids_entry.get()))
+    apply_button.pack(side="bottom")
+    window.mainloop()
+
+# function to reset the game
+def reset():    
+    print("reset")
 
 # function to handle the asteroids and the powerups
 def asteroid_loop():
     global running, asteroids, clock, powerups
+    # checking if the game is running
     while running:
+        # checking if the settings window is open, if it is, the asteroids will stop moving
+        while settings:
+            pass
+        # checking if there is a right amount of asteroids and powerups
         if len(asteroids)< 3:
             asteroid = Asteroid()
             asteroids.add(asteroid)
         if len(powerups) < 1:
             powerup = Powerup(resized_powerup_image)
             powerups.add(powerup)
-            print("powerup spawned")
 
         # checking if the asteroids have hit the outer walls of the screen
         for asteroid in asteroids:
-            if asteroid.x <= 0 - 300 + asteroid.image.get_width() / 2 or asteroid.x >= 800 + 300 - asteroid.image.get_width() / 2 or asteroid.y <= 0 - 300 + asteroid.image.get_height() / 2 or asteroid.y >= 600 + 300 - asteroid.image.get_height() / 2:
+            if asteroid.x <= 0 - height//2 + asteroid.image.get_width() / 2 or asteroid.x >= width + height//2 - asteroid.image.get_width() / 2 or asteroid.y <= 0 - height//2 + asteroid.image.get_height() / 2 or asteroid.y >= height + height//2 - asteroid.image.get_height() / 2:
                 asteroids.remove(asteroid)
         # checking if the powerups have hit the outer walls of the screen
         for powerup in powerups:
@@ -261,7 +322,9 @@ def asteroid_loop():
 # initialize pygame
 pygame.init()
 # setting up the screen
-screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
+width = 800
+height = 600
+screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
 # setting up the title and icon
 pygame.display.set_caption("Asteroids")
 icon = pygame.image.load("asteroid1.png")
@@ -269,23 +332,22 @@ pygame.display.set_icon(icon)
 
 # setting up all the possible spawn points outside the screen
 spawn_points = []
-for i in range(200//10):
-    for j in range(600//10):
-        spawn_points.append((800+i*10, j*10))
-        spawn_points.append((-800+i*10, j*10))
-        spawn_points.append((i*10, 600+j*10))
-        spawn_points.append((i*10, -600+j*10))
+for i in range(width//4//10):
+    for j in range(height//10):
+        spawn_points.append((width+i*10, j*10))
+        spawn_points.append((-width+i*10, j*10))
+        spawn_points.append((i*10, height+j*10))
+        spawn_points.append((i*10, -height+j*10))
 power_up_spawn_points = []
-for i in range(600//10):
-    for j in range(600//10):
+for i in range(height//10):
+    for j in range(height//10):
         # power ups will only spawn above the screen
-        #print(i,j)
-        power_up_spawn_points.append((i*10, -600+j*10))
+        power_up_spawn_points.append((i*10, -height+j*10))
 
 # creating the player
 player_image = pygame.image.load("spaceship.png")
 resized_player_image = pygame.transform.scale(player_image, (64, 64))
-player = Player(400, 300, resized_player_image, 64, "normal")
+player = Player(width//2, height//2, resized_player_image, 64, "normal")
 speed = [[],[]]
 resistance = 0.2
 
@@ -320,6 +382,11 @@ resized_ufo_image = pygame.transform.scale(ufo_image, (64, 64))
 
 # creating the ufos group
 ufos = pygame.sprite.Group()
+
+# setting up settings button
+settings_button = pygame.image.load("settings.png")
+resized_settings_button = pygame.transform.scale(settings_button, (64, 64))
+settings = False
 
 # main loop
 running = True
@@ -446,6 +513,14 @@ while running:
             elif event.key == pygame.K_k:
                 ufo = Ufo()
                 ufos.add(ufo)
+            elif event.key == pygame.K_r:
+                reset()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                pos = pygame.mouse.get_pos()
+                if pos[0] >= width - resized_settings_button.get_width() and pos[1] >= height - resized_settings_button.get_height():
+                    settings = True
+                    settings_window()
 
         if event.type == pygame.KEYUP:
             if player.angle == 0 or player.angle == 180 or player.angle == -180:
@@ -479,20 +554,20 @@ while running:
     if player.x <= 0 + player.image.get_width() / 2:
         player.x = 0 + player.image.get_width() / 2
         player.horizontal_speed = 0
-    elif player.x >= 800 - player.image.get_width() / 2:
-        player.x = 800 - player.image.get_width() / 2
+    elif player.x >= width - player.image.get_width() / 2:
+        player.x = width - player.image.get_width() / 2
         player.horizontal_speed = 0
     if player.y <= player.image.get_height() / 2:
         player.y = player.image.get_height() / 2
         player.vertical_speed = 0
-    elif player.y >= 600 - player.image.get_height() / 2:
-        player.y = 600 - player.image.get_height() / 2
+    elif player.y >= height - player.image.get_height() / 2:
+        player.y = height - player.image.get_height() / 2
         player.vertical_speed = 0
     player.rect = player.image.get_rect(center=(player.x, player.y))
 
     # checking if the bullets have hit the outer walls of the screen
     for bullet in bullets:
-        if bullet.x <= 0 + bullet.image.get_width() / 2 or bullet.x >= 800 - bullet.image.get_width() / 2 or bullet.y <= 0 + bullet.image.get_height() / 2 or bullet.y >= 600 - bullet.image.get_height() / 2:
+        if bullet.x <= 0 + bullet.image.get_width() / 2 or bullet.x >= width - bullet.image.get_width() / 2 or bullet.y <= 0 + bullet.image.get_height() / 2 or bullet.y >= height - bullet.image.get_height() / 2:
             bullets.remove(bullet)
 
     # checking if the bullets have hit the asteroids or the ufos
@@ -510,7 +585,6 @@ while running:
     for powerup in powerups:
         if player.rect.colliderect(powerup.rect):
             powerups.remove(powerup)
-            #print("powerup hit")
             player.state = "protected"
 
     # checking if the player has hit the asteroids
@@ -520,7 +594,7 @@ while running:
             if player.state == "protected":
                 player.state = "normal"
             else:
-                print("player hit")
+                end_screen()
 
     # drawing the player
     player.draw()
@@ -537,6 +611,12 @@ while running:
 
     # drawing the ufos
     ufos.draw(screen)
+
+    # drawing the settings button
+    screen.blit(resized_settings_button, (width- resized_settings_button.get_width(), height - resized_settings_button.get_height()))
+
+    # if the code reaches this part than the settings window must be closed
+    settings = False
 
     # updating the display
     clock.tick(60)
