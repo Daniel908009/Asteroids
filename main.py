@@ -146,8 +146,8 @@ class Asteroid(pygame.sprite.Sprite):
         self.spawn_point = random.choice(spawn_points)
         self.x = self.spawn_point[0]
         self.y = self.spawn_point[1]
-        self.x = self.x
-        self.y = self.y
+        self.angle = 0
+        print(self.x, self.y)
         # depending on the spawn point, the angle options will be different
         if self.x <= 0:
             self.angle = random.randint(0, 180)
@@ -157,16 +157,7 @@ class Asteroid(pygame.sprite.Sprite):
             self.angle = random.randint(90, 270)
         elif self.y >= height:
             self.angle = random.randint(-90, 90)
-
-        self.rotation_speed = random.randint(-3,3)
         self.image = random.choice(resized_asteroid_images)
-        self.rect = self.image.get_rect(center=(self.x, self.y))
-    
-    def rotate(self):
-        self.angle += self.rotation_speed
-        self.image = pygame.transform.rotate(self.image, self.angle)
-        if self.angle >= 360 or self.angle <= -360:
-            self.angle = 0
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self):
@@ -227,7 +218,9 @@ def end_screen():
         text = font.render("Game Over", True, (255, 255, 255))
         text_rect = text.get_rect(center=(width//2, height//2))
         screen.blit(text, text_rect)
-        pygame.display.update()
+        text = font.render(f"Score: {score}", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(width//2, height//2 + 50))
+        screen.blit(text, text_rect)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 end = False
@@ -240,10 +233,16 @@ def end_screen():
 
 # function to apply settings
 def apply_settings(window, asteroids_entry):
-    global settings
-    # unpausing the movement of the asteroids and destroying the settings window
-    settings = False
-    window.destroy()
+    global settings, number_of_asteroids
+    #print(asteroids_entry)
+    if int(asteroids_entry) <= 0:
+        return
+    else:
+        # unpausing the movement of the asteroids and destroying the settings window
+        settings = False
+        window.destroy()
+        # changing the number of asteroids
+        number_of_asteroids = int(asteroids_entry)
 
     # resetting the game to apply the settings
     reset()
@@ -271,7 +270,7 @@ def settings_window():
     asteroids_label.grid(row=0, column=0)
     # creating entry for the number of asteroids
     e1 = tkinter.StringVar()
-    e1.set(str(len(asteroids)))
+    e1.set(str(number_of_asteroids))
     asteroids_entry = tkinter.Entry(settings_frame, textvariable=e1)
     asteroids_entry.grid(row=0, column=1)
         # more settings will be added
@@ -282,21 +281,47 @@ def settings_window():
     window.mainloop()
 
 # function to reset the game
-def reset():    
-    print("reset")
+def reset():
+    print("resetting")
+    global reset_on, player, asteroids, bullets, ufos, powerups, score
+    reset_on = True
+    score = 0
+    # resetting the player
+    player.x = width//2
+    player.y = height//2
+    player.angle = 0
+    player.per_angle = 0
+    player.vertical_speed = 0
+    player.horizontal_speed = 0
+    player.state = "normal"
+    player.rect = player.image.get_rect(center=(player.x, player.y))
+    # resetting the asteroids
+    asteroids.empty()
+    # resetting the bullets
+    bullets.empty()
+    # resetting the ufos
+    ufos.empty()
+    # resetting the powerups
+    powerups.empty()
+    reset_on = False
 
 # function to handle the asteroids and the powerups
 def asteroid_loop():
-    global running, asteroids, clock, powerups
+    global running, asteroids, clock, powerups, number_of_asteroids
     # checking if the game is running
     while running:
+        global settings, reset_on
         # checking if the settings window is open, if it is, the asteroids will stop moving
         while settings:
             pass
+        # checking if reset function is doing some changes to the game
+        while reset_on:
+            pass
         # checking if there is a right amount of asteroids and powerups
-        if len(asteroids)< 3:
+        if len(asteroids)< number_of_asteroids:
             asteroid = Asteroid()
             asteroids.add(asteroid)
+            print("added asteroid")
         if len(powerups) < 1:
             powerup = Powerup(resized_powerup_image)
             powerups.add(powerup)
@@ -307,7 +332,7 @@ def asteroid_loop():
                 asteroids.remove(asteroid)
         # checking if the powerups have hit the outer walls of the screen
         for powerup in powerups:
-            if powerup.y >= 600 + 300 - powerup.image.get_height() / 2:
+            if powerup.y >= height + height//2 - powerup.image.get_height() / 2:
                 powerups.remove(powerup)
     
         # moving the asteroids
@@ -324,7 +349,9 @@ pygame.init()
 # setting up the screen
 width = 800
 height = 600
-screen = pygame.display.set_mode((width, height), pygame.RESIZABLE)
+screen = pygame.display.set_mode((width, height))
+reset_on = False
+score = 0
 # setting up the title and icon
 pygame.display.set_caption("Asteroids")
 icon = pygame.image.load("asteroid1.png")
@@ -332,8 +359,10 @@ pygame.display.set_icon(icon)
 
 # setting up all the possible spawn points outside the screen
 spawn_points = []
-for i in range(width//4//10):
+for i in range((width//4)//10):
+    #print(i)
     for j in range(height//10):
+        #print(j)
         spawn_points.append((width+i*10, j*10))
         spawn_points.append((-width+i*10, j*10))
         spawn_points.append((i*10, height+j*10))
@@ -369,6 +398,7 @@ resized_asteroid_images = []
 for asteroid_image in asteroid_images:
     resized_asteroid_image = pygame.transform.scale(asteroid_image, (64, 64))
     resized_asteroid_images.append(resized_asteroid_image)
+number_of_asteroids = 1
 
 # creating the asteroids group
 asteroids = pygame.sprite.Group()
@@ -388,6 +418,10 @@ settings_button = pygame.image.load("settings.png")
 resized_settings_button = pygame.transform.scale(settings_button, (64, 64))
 settings = False
 
+# setting up the background image
+background = pygame.image.load("background.jpeg")
+resized_background = pygame.transform.scale(background, (width, height))
+
 # main loop
 running = True
 clock = pygame.time.Clock()
@@ -397,8 +431,8 @@ while running:
     if not asteroid_thread.is_alive():
         asteroid_thread.start()
 
-    # setting the background color
-    screen.fill((0, 0, 0))
+    # setting the background image
+    screen.blit(resized_background, (0, 0))
 
     # checking for events
     for event in pygame.event.get():
@@ -416,43 +450,31 @@ while running:
                 if player.angle == 360 or player.angle == -360:
                     player.angle = 0
             # in case ship is pointing up
-            if event.key == pygame.K_a and player.angle == 0:
+            #print(player.angle)
+            if event.key == pygame.K_a and player.angle == 0 or event.key == pygame.K_a and player.angle == 180:
                 player.change_direction("left")
                 speed[0] = 7
-            elif event.key == pygame.K_d and player.angle == 0:
+            elif event.key == pygame.K_d and player.angle == 0 or event.key == pygame.K_d and player.angle == 180:
                 player.change_direction("right")
                 speed[0] = 7
-            elif event.key == pygame.K_w and player.angle == 0:
+            elif event.key == pygame.K_w and player.angle == 0 or event.key == pygame.K_s and player.angle == 180:
                 player.change_direction("up")
                 speed[1] = 7
-            elif event.key == pygame.K_s and player.angle == 0:
+            elif event.key == pygame.K_s and player.angle == 0 or event.key == pygame.K_w and player.angle == 180:
                 player.change_direction("down")
                 speed[1] = 7
             # in case ship is pointing right
-            if event.key == pygame.K_a and player.angle == -90 :
+            if event.key == pygame.K_a and player.angle == -90 or event.key == pygame.K_d and player.angle == 90:
                 player.change_direction("up")
                 speed[1] = 7
-            elif event.key == pygame.K_d and player.angle == -90:
+            elif event.key == pygame.K_d and player.angle == -90 or event.key == pygame.K_a and player.angle == 90:
                 player.change_direction("down")
                 speed[1] = 7
-            elif event.key == pygame.K_w and player.angle == -90:
+            elif event.key == pygame.K_w and player.angle == -90 or event.key == pygame.K_s and player.angle == 90:
                 player.change_direction("right")
                 speed[0] = 7
-            elif event.key == pygame.K_s and player.angle == -90:
+            elif event.key == pygame.K_s and player.angle == -90 or event.key == pygame.K_w and player.angle == 90:
                 player.change_direction("left")
-                speed[0] = 7
-            # this part of the code solved the bug, where no matter what player pressed the ship would always go up
-            elif event.key == pygame.K_a and player.angle == 90:
-                player.change_direction("down")
-                speed[1] = 7
-            elif event.key == pygame.K_d and player.angle == 90:
-                player.change_direction("up")
-                speed[1] = 7
-            elif event.key == pygame.K_w and player.angle == 90:
-                player.change_direction("left")
-                speed[0] = 7
-            elif event.key == pygame.K_s and player.angle == 90:
-                player.change_direction("right")
                 speed[0] = 7
             # in case ship is pointing down
             elif event.key == pygame.K_a and player.angle == -180:
@@ -466,19 +488,6 @@ while running:
                 speed[1] = 7
             elif event.key == pygame.K_s and player.angle == -180:
                 player.change_direction("up")
-                speed[1] = 7
-            # this is also preventing the bug, where the ship would always go up
-            elif event.key == pygame.K_a and player.angle == 180:
-                player.change_direction("left")
-                speed[0] = 7
-            elif event.key == pygame.K_d and player.angle == 180:
-                player.change_direction("right")
-                speed[0] = 7
-            elif event.key == pygame.K_w and player.angle == 180:
-                player.change_direction("up")
-                speed[1] = 7
-            elif event.key == pygame.K_s and player.angle == 180:
-                player.change_direction("down")
                 speed[1] = 7
             # in case ship is pointing left
             elif event.key == pygame.K_a and player.angle == -270:
@@ -507,6 +516,7 @@ while running:
                 player.change_direction("down")
                 speed[1] = 7
 
+            # other non movement key events
             elif event.key == pygame.K_SPACE:
                 bullet = Bullet(player.x, player.y, player.angle, resized_bullet_image)
                 bullets.add(bullet)
@@ -515,13 +525,14 @@ while running:
                 ufos.add(ufo)
             elif event.key == pygame.K_r:
                 reset()
+        # checking if the settings button is pressed
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 pos = pygame.mouse.get_pos()
                 if pos[0] >= width - resized_settings_button.get_width() and pos[1] >= height - resized_settings_button.get_height():
                     settings = True
                     settings_window()
-
+        # checking if the keys are released to apply the resistance
         if event.type == pygame.KEYUP:
             if player.angle == 0 or player.angle == 180 or player.angle == -180:
                 if event.key == pygame.K_a or event.key == pygame.K_d:
@@ -576,10 +587,12 @@ while running:
             if bullet.rect.colliderect(asteroid.rect):
                 bullets.remove(bullet)
                 asteroids.remove(asteroid)
+                score += 1
         for ufo in ufos:
             if bullet.rect.colliderect(ufo.rect):
                 bullets.remove(bullet)
                 ufos.remove(ufo)
+                score += 5
     
     # checking if player has hit the powerup
     for powerup in powerups:
@@ -595,6 +608,11 @@ while running:
                 player.state = "normal"
             else:
                 end_screen()
+
+    # drawing the score to the top right corner
+    font = pygame.font.Font("freesansbold.ttf", 32)
+    text = font.render(f"Score: {score}", True, (255, 255, 255))
+    screen.blit(text, (width - text.get_width(), 0))
 
     # drawing the player
     player.draw()
@@ -619,8 +637,8 @@ while running:
     settings = False
 
     # updating the display
-    clock.tick(60)
     pygame.display.update()
+    clock.tick(60)
 
 # quiting the game
 pygame.quit()
