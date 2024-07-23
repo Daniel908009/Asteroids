@@ -7,23 +7,31 @@ import threading
     # Classes
 # player class
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x, y, image, size):
+    def __init__(self, x, y, image, size, state):
         pygame.sprite.Sprite.__init__(self)
         self.x = x
         self.y = y
+        self.state = state
         self.vertical_speed = 0
         self.horizontal_speed = 0
         self.direction = ""
         self.angle = 0
         self.per_angle = 0
         self.image = image
+        self.real_image = image
         self.size = size
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self):
         # rotating the player image according to the angle
-        self.image = pygame.transform.rotate(self.image, self.per_angle)
-        self.per_angle = 0
+        if self.state == "protected":
+            self.image = pygame.transform.scale(pygame.image.load("protected_player.png"), (self.size + 10, self.size + 10))
+            self.image = pygame.transform.rotate(self.image, self.angle)
+        else:
+            self.image = self.real_image
+            self.image = pygame.transform.scale(self.image, (self.size, self.size))
+            self.image = pygame.transform.rotate(self.image, self.angle)
+        self.rect = self.image.get_rect(center=(self.x, self.y))
         
         # drawing the player
         screen.blit(self.image, self.rect)
@@ -32,11 +40,8 @@ class Player(pygame.sprite.Sprite):
         self.direction = direction
 
     def move(self, speed):
-        #(player.angle)
-        #print(speed)
         # new movement code
         if speed[0] != 0 or speed[1] != 0:
-            #print("moving")
             if self.direction == "left":
                 self.horizontal_speed -= speed[0]
             elif self.direction == "right":
@@ -83,35 +88,14 @@ class Player(pygame.sprite.Sprite):
                 self.vertical_speed -= resistance
             elif self.vertical_speed < 0 and speed[1] == 0:
                 self.vertical_speed += resistance
-
-
-                # failed attempt to slow down the player, caused unexpected movement
-            #print("slowing down")
-            #print(self.horizontal_speed, self.vertical_speed)
-            #print(speed)
-            #print("moving second")
-            #if self.horizontal_speed > 0 and speed[0] == 0:
-            #    self.horizontal_speed += resistance
-            #    print("slowing down1")
-            #elif self.horizontal_speed < 0 and speed[0] == 0:
-            #    self.horizontal_speed += resistance
-            #    print("slowing down2")
-            #if self.vertical_speed > 0 and speed[1] == 0:
-            #    self.vertical_speed += resistance
-            #    print("slowing down3")
-            #elif self.vertical_speed < 0 and speed[1] == 0:
-            #    self.vertical_speed += resistance
-            #    print("slowing down4")
         
         # rounding the speed to 2 decimal places
         self.horizontal_speed = round(self.horizontal_speed, 2)
         self.vertical_speed = round(self.vertical_speed, 2)
 
-        #print(self.horizontal_speed, self.vertical_speed)
         self.y += self.vertical_speed
         self.x += self.horizontal_speed
         self.rect = self.image.get_rect(center=(self.x, self.y))
-        #print(speed)
 
 # bullet class
 class Bullet(pygame.sprite.Sprite):
@@ -124,28 +108,39 @@ class Bullet(pygame.sprite.Sprite):
         self.vertical_speed = 0
         # based on the direction of the player, the bullet will move in that direction and keep moving sideways, because player was moving sideways
         if player.angle == 0:
-            self.horizontal_speed = 0
+            self.horizontal_speed = player.horizontal_speed
             self.vertical_speed =  speed
-        elif player.angle == 90:
+        elif player.angle == 90 or player.angle == -90:
             self.horizontal_speed = speed
             self.vertical_speed = player.vertical_speed
-        elif player.angle == 180:
+        elif player.angle == 180 or player.angle == -180:
             self.horizontal_speed = 0
             self.vertical_speed = speed
-        elif player.angle == 270:
+        elif player.angle == 270 or player.angle == -270:
             self.horizontal_speed = speed
             self.vertical_speed = player.vertical_speed
+        #print(self.horizontal_speed, self.vertical_speed)
 
         self.image = image
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def draw(self):
+        # rotating the bullet image according to the angle
+        print(self.angle)
+        print("drawing")
+        self.image = pygame.transform.rotate(self.image, self.angle)
+        self.rect = self.image.get_rect(center=(self.x, self.y))
         screen.blit(self.image, self.rect)
 
     def move(self):
         #print(self.horizontal_speed, self.vertical_speed)
+        #self.horizontal_speed = round(self.horizontal_speed, 2)
+        #self.vertical_speed = round(self.vertical_speed, 2)
+        #print(self.x, self.y)
         self.x += math.sin(math.radians(self.angle)) * self.horizontal_speed
         self.y += math.cos(math.radians(self.angle)) * self.vertical_speed
+        #print(math.sin(math.radians(self.angle)) * self.horizontal_speed, math.cos(math.radians(self.angle)) * self.vertical_speed)
+        #print(self.x, self.y)
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
 # asteroid class
@@ -206,6 +201,24 @@ class Ufo(pygame.sprite.Sprite):
         # here I will implement some more complex movement later on
         pass
 
+# powerup class
+class Powerup(pygame.sprite.Sprite):
+    def __init__(self, image):
+        pygame.sprite.Sprite.__init__(self)
+        pos = random.choice(power_up_spawn_points)
+        self.x = pos[0]
+        self.y = pos[1]
+        print(self.x, self.y)
+        self.speed = random.randint(1, 3)
+        self.image = image
+        self.rect = self.image.get_rect(center=(self.x, self.y))
+    def draw(self):
+        screen.blit(self.image, self.rect)
+    def move(self):
+        self.y += self.speed
+        #print(self.y)
+        self.rect = self.image.get_rect(center=(self.x, self.y))
+
     # Functions
 
 # function to rotate the asteroids
@@ -215,21 +228,33 @@ def rotation():
             asteroid.rotate()
         clock.tick(120)
 
-# function to handle the asteroids
+# function to handle the asteroids and the powerups
 def asteroid_loop():
-    global running, asteroids, clock
+    global running, asteroids, clock, powerups
     while running:
         if len(asteroids)< 3:
             asteroid = Asteroid()
             asteroids.add(asteroid)
+        if len(powerups) < 1:
+            powerup = Powerup(resized_powerup_image)
+            powerups.add(powerup)
+            print("powerup spawned")
 
+        # checking if the asteroids have hit the outer walls of the screen
         for asteroid in asteroids:
             if asteroid.x <= 0 - 300 + asteroid.image.get_width() / 2 or asteroid.x >= 800 + 300 - asteroid.image.get_width() / 2 or asteroid.y <= 0 - 300 + asteroid.image.get_height() / 2 or asteroid.y >= 600 + 300 - asteroid.image.get_height() / 2:
                 asteroids.remove(asteroid)
+        # checking if the powerups have hit the outer walls of the screen
+        for powerup in powerups:
+            if powerup.y >= 600 + 300 - powerup.image.get_height() / 2:
+                powerups.remove(powerup)
     
         # moving the asteroids
         for asteroid in asteroids:
             asteroid.move(random.randint(1, 3))
+        # moving the powerups
+        for powerup in powerups:
+            powerup.move()
 
         clock.tick(60)
 
@@ -250,17 +275,28 @@ for i in range(200//10):
         spawn_points.append((-800+i*10, j*10))
         spawn_points.append((i*10, 600+j*10))
         spawn_points.append((i*10, -600+j*10))
+power_up_spawn_points = []
+for i in range(600//10):
+    for j in range(600//10):
+        # power ups will only spawn above the screen
+        #print(i,j)
+        power_up_spawn_points.append((i*10, -600+j*10))
 
 # creating the player
 player_image = pygame.image.load("spaceship.png")
 resized_player_image = pygame.transform.scale(player_image, (64, 64))
-player = Player(400, 300, resized_player_image, 64)
+player = Player(400, 300, resized_player_image, 64, "normal")
 speed = [[],[]]
 resistance = 0.2
 
 # setting up the bullets
 bullet_image = pygame.image.load("laser.png")
 resized_bullet_image = pygame.transform.scale(bullet_image, (32, 32))
+
+# setting up the powerups
+powerup_image = pygame.image.load("powerup.png")
+resized_powerup_image = pygame.transform.scale(powerup_image, (32, 32))
+powerups = pygame.sprite.Group()
 
 # creating the bullets group
 bullets = pygame.sprite.Group()
@@ -299,10 +335,19 @@ while running:
 
     # checking for events
     for event in pygame.event.get():
-        #print(player.angle)
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+                player.angle += 90
+                player.per_angle += 90
+                if player.angle == 360 or player.angle == -360:
+                    player.angle = 0
+            elif event.key == pygame.K_e:
+                player.angle -= 90
+                player.per_angle -= 90
+                if player.angle == 360 or player.angle == -360:
+                    player.angle = 0
             # in case ship is pointing up
             if event.key == pygame.K_a and player.angle == 0:
                 player.change_direction("left")
@@ -317,44 +362,83 @@ while running:
                 player.change_direction("down")
                 speed[1] = 7
             # in case ship is pointing right
-            elif event.key == pygame.K_a and player.angle == -90 or player.angle == 90:
+            if event.key == pygame.K_a and player.angle == -90 :
                 player.change_direction("up")
                 speed[1] = 7
-            elif event.key == pygame.K_d and player.angle == -90 or player.angle == 90:
+            elif event.key == pygame.K_d and player.angle == -90:
                 player.change_direction("down")
                 speed[1] = 7
-            elif event.key == pygame.K_w and player.angle == -90 or player.angle == 90:
+            elif event.key == pygame.K_w and player.angle == -90:
                 player.change_direction("right")
                 speed[0] = 7
-            elif event.key == pygame.K_s and player.angle == -90 or player.angle == 90:
+            elif event.key == pygame.K_s and player.angle == -90:
                 player.change_direction("left")
+                speed[0] = 7
+            # this part of the code solved the bug, where no matter what player pressed the ship would always go up
+            elif event.key == pygame.K_a and player.angle == 90:
+                player.change_direction("down")
+                speed[1] = 7
+            elif event.key == pygame.K_d and player.angle == 90:
+                player.change_direction("up")
+                speed[1] = 7
+            elif event.key == pygame.K_w and player.angle == 90:
+                player.change_direction("left")
+                speed[0] = 7
+            elif event.key == pygame.K_s and player.angle == 90:
+                player.change_direction("right")
                 speed[0] = 7
             # in case ship is pointing down
-            elif event.key == pygame.K_a and player.angle == -180 or player.angle == 180:
+            elif event.key == pygame.K_a and player.angle == -180:
                 player.change_direction("right")
                 speed[0] = 7
-            elif event.key == pygame.K_d and player.angle == -180 or player.angle == 180:
+            elif event.key == pygame.K_d and player.angle == -180:
                 player.change_direction("left")
                 speed[0] = 7
-            elif event.key == pygame.K_w and player.angle == -180 or player.angle == 180:
+            elif event.key == pygame.K_w and player.angle == -180:
                 player.change_direction("down")
                 speed[1] = 7
-            elif event.key == pygame.K_s and player.angle == -180 or player.angle == 180:
+            elif event.key == pygame.K_s and player.angle == -180:
                 player.change_direction("up")
+                speed[1] = 7
+            # this is also preventing the bug, where the ship would always go up
+            elif event.key == pygame.K_a and player.angle == 180:
+                player.change_direction("left")
+                speed[0] = 7
+            elif event.key == pygame.K_d and player.angle == 180:
+                player.change_direction("right")
+                speed[0] = 7
+            elif event.key == pygame.K_w and player.angle == 180:
+                player.change_direction("up")
+                speed[1] = 7
+            elif event.key == pygame.K_s and player.angle == 180:
+                player.change_direction("down")
                 speed[1] = 7
             # in case ship is pointing left
-            elif event.key == pygame.K_a and player.angle == -270 or player.angle == 270:
+            elif event.key == pygame.K_a and player.angle == -270:
                 player.change_direction("down")
                 speed[1] = 7
-            elif event.key == pygame.K_d and player.angle == -270 or player.angle == 270:
+            elif event.key == pygame.K_d and player.angle == -270:
                 player.change_direction("up")
                 speed[1] = 7
-            elif event.key == pygame.K_w and player.angle == -270 or player.angle == 270:
+            elif event.key == pygame.K_w and player.angle == -270:
                 player.change_direction("left")
                 speed[0] = 7
-            elif event.key == pygame.K_s and player.angle == -270 or player.angle == 270:
+            elif event.key == pygame.K_s and player.angle == -270:
                 player.change_direction("right")
                 speed[0] = 7
+            # this is also preventing the bug, where the ship would always go up, I didnt even see this bug coming
+            elif event.key == pygame.K_a and player.angle == 270:
+                player.change_direction("right")
+                speed[0] = 7
+            elif event.key == pygame.K_d and player.angle == 270:
+                player.change_direction("left")
+                speed[0] = 7
+            elif event.key == pygame.K_w and player.angle == 270:
+                player.change_direction("up")
+                speed[1] = 7
+            elif event.key == pygame.K_s and player.angle == 270:
+                player.change_direction("down")
+                speed[1] = 7
 
             elif event.key == pygame.K_SPACE:
                 bullet = Bullet(player.x, player.y, player.angle, resized_bullet_image)
@@ -362,35 +446,22 @@ while running:
             elif event.key == pygame.K_k:
                 ufo = Ufo()
                 ufos.add(ufo)
-            elif event.key == pygame.K_q:
-                player.angle += 90
-                player.per_angle += 90
-                if player.angle == 360 or player.angle == -360:
-                    player.angle = 0
-            elif event.key == pygame.K_e:
-                player.angle -= 90
-                player.per_angle -= 90
-                if player.angle == 360 or player.angle == -360:
-                    player.angle = 0
+
         if event.type == pygame.KEYUP:
             if player.angle == 0 or player.angle == 180 or player.angle == -180:
                 if event.key == pygame.K_a or event.key == pygame.K_d:
                     player.change_direction("")
                     speed[0] = 0
-                    #print("key up")
                 elif event.key == pygame.K_w or event.key == pygame.K_s:
                     player.change_direction("")
                     speed[1] = 0
-                    #print("key up")
             else:
                 if event.key == pygame.K_w or event.key == pygame.K_s:
                     player.change_direction("")
                     speed[0] = 0
-                    #print("key up")
                 elif event.key == pygame.K_a or event.key == pygame.K_d:
                     player.change_direction("")
                     speed[1] = 0
-                    #print("key up")
         
 
     # moving the player in the directions
@@ -434,12 +505,22 @@ while running:
             if bullet.rect.colliderect(ufo.rect):
                 bullets.remove(bullet)
                 ufos.remove(ufo)
+    
+    # checking if player has hit the powerup
+    for powerup in powerups:
+        if player.rect.colliderect(powerup.rect):
+            powerups.remove(powerup)
+            #print("powerup hit")
+            player.state = "protected"
 
     # checking if the player has hit the asteroids
     for asteroid in asteroids:
         if player.rect.colliderect(asteroid.rect):
             asteroids.remove(asteroid)
-            print("hit")
+            if player.state == "protected":
+                player.state = "normal"
+            else:
+                print("player hit")
 
     # drawing the player
     player.draw()
@@ -450,6 +531,9 @@ while running:
 
     # drawing the asteroids, asteroids have to be drawn in the main loop, to keep them sync
     asteroids.draw(screen)
+
+    # drawing the powerups
+    powerups.draw(screen)
 
     # drawing the ufos
     ufos.draw(screen)
