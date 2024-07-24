@@ -29,7 +29,6 @@ class Player(pygame.sprite.Sprite):
     def draw(self):
         # rotating the player image according to the angle
         if self.state == "protected":
-            self.image = protected_player
             self.image = pygame.transform.rotate(self.image, self.angle)
         else:
             self.image = self.real_image
@@ -46,6 +45,7 @@ class Player(pygame.sprite.Sprite):
         # new movement code
         # based on the direction the player will move, player can move only forward or backward(it is easier to program)
         if self.direction == "forward":
+            self.image = thrust_spaceship
             self.horizontal_speed -= math.sin(math.radians(self.angle)) * self.speed
             self.vertical_speed -= math.cos(math.radians(self.angle)) * self.speed
         elif self.direction == "back":
@@ -81,7 +81,7 @@ class Bullet(pygame.sprite.Sprite):
         self.angle = angle + 180
         self.horizontal_speed = 0
         self.vertical_speed = 0
-        self.speed = player.speed * 2
+        self.speed = bullet_speed
         # based on the direction of the player the bullet will move in that direction
         self.horizontal_speed = math.sin(math.radians(self.angle)) * self.speed
         self.vertical_speed = math.cos(math.radians(self.angle)) * self.speed
@@ -152,6 +152,8 @@ class Powerup(pygame.sprite.Sprite):
             self.image = resized_powerup_image
         elif self.type == "lives":
             self.image = resized_lives_powerup_image
+        elif self.type == "pulse":
+            self.image = resized_pulse_powerup_image
         self.rect = self.image.get_rect(center=(self.x, self.y))
     def draw(self):
         screen.blit(self.image, self.rect)
@@ -187,7 +189,7 @@ def end_screen():
         pygame.display.update()
 
 # function to apply settings
-def apply_settings(window, asteroids_entry, powerups_entry, ufo_entry):
+def apply_settings(window, asteroids_entry, powerups_entry, ufo_entry, playersize, player_speed, bulletspeed):
     global settings, number_of_asteroids
     if int(asteroids_entry) <= 0 or int(powerups_entry) < 0 or int(ufo_entry) < 0:
         return
@@ -203,6 +205,23 @@ def apply_settings(window, asteroids_entry, powerups_entry, ufo_entry):
         # changing the chance of a ufo spawning
         global chance_of_ufo
         chance_of_ufo = int(ufo_entry)
+        # changing the size of the player
+        global player_size
+        player_size = playersize
+        # changing the speed of the player
+        global playerspeed
+        playerspeed = player_speed
+        # changing the speed of the bullets
+        global bullet_speed, bullet_speed_mode
+        if bulletspeed == "Slow":
+            bullet_speed_mode = "Slow"
+            bullet_speed = 3
+        elif bulletspeed == "Normal":
+            bullet_speed_mode = "Normal"
+            bullet_speed = 5
+        elif bulletspeed == "Fast":
+            bullet_speed_mode = "Fast"
+            bullet_speed = 7
 
     # resetting the game to apply the settings
     reset()
@@ -210,7 +229,7 @@ def apply_settings(window, asteroids_entry, powerups_entry, ufo_entry):
 # function to create settings window
 def settings_window():
     # pausing the movement of the asteroids
-    global settings 
+    global settings,bullet_speed, playerspeed, player_size, bullet_speed_mode
     settings = True
 
     # creating the window
@@ -246,33 +265,39 @@ def settings_window():
     ufo_label.grid(row=2, column=0)
     # creating entry for the chance of a ufo spawning
     e3 = tkinter.StringVar()
-    e3.set("0")
+    e3.set(str(chance_of_ufo))
     ufo_entry = tkinter.Entry(settings_frame, textvariable=e3)
     ufo_entry.grid(row=2, column=1)
     # creating a option menu for the size of the player
-    player_size_label = tkinter.Label(settings_frame, text="Size of the player")
-    player_size_label.grid(row=3, column=0)
-    player_size = tkinter.StringVar()
-    player_size.set("Normal")
-    player_size_menu = tkinter.OptionMenu(settings_frame, player_size, "Small", "Normal", "Big")
-    player_size_menu.grid(row=3, column=1)
+    playersize_label = tkinter.Label(settings_frame, text="Size of the player")
+    playersize_label.grid(row=3, column=0)
+    playersize = tkinter.StringVar()
+    playersize.set(str(player_size))
+    playersize_menu = tkinter.OptionMenu(settings_frame, playersize, "Small", "Normal", "Big")
+    playersize_menu.grid(row=3, column=1)
     # creating a option menu for the speed of the player
     player_speed_label = tkinter.Label(settings_frame, text="Speed of the player")
     player_speed_label.grid(row=4, column=0)
     player_speed = tkinter.StringVar()
-    player_speed.set("Normal")
+    player_speed.set(str(playerspeed))
     player_speed_menu = tkinter.OptionMenu(settings_frame, player_speed, "Slow", "Normal", "Fast")
     player_speed_menu.grid(row=4, column=1)
+    # creating option menu for the bullet speed
+    bulletspeed_label = tkinter.Label(settings_frame, text="Speed of the bullets")
+    bulletspeed_label.grid(row=5, column=0)
+    bulletspeed = tkinter.StringVar()
+    bulletspeed.set(str(bullet_speed_mode))
+    bulletspeed_menu = tkinter.OptionMenu(settings_frame, bulletspeed, "Slow", "Normal", "Fast")
+    bulletspeed_menu.grid(row=5, column=1)
         # more settings will be added
 
     # creating apply button
-    apply_button = tkinter.Button(window, text="Apply", command=lambda: apply_settings(window, asteroids_entry.get(), powerups_entry.get(), ufo_entry.get()), font=("Arial", 15))
+    apply_button = tkinter.Button(window, text="Apply", command=lambda: apply_settings(window, asteroids_entry.get(), powerups_entry.get(), ufo_entry.get(), playersize.get(), player_speed.get(), bulletspeed.get()), font=("Arial", 15))
     apply_button.pack(side="bottom")
     window.mainloop()
 
 # function to reset the game
 def reset():
-    print("resetting")
     # getting new width and height of the screen
     global width, height
     width = screen.get_width()
@@ -289,7 +314,6 @@ def reset():
     player.vertical_speed = 0
     player.horizontal_speed = 0
     player.state = "normal"
-    player.rect = player.image.get_rect(center=(player.x, player.y))
     player.lives = 3
     player.direction = ""
     # resetting the asteroids
@@ -304,10 +328,41 @@ def reset():
     all_sprites.empty()
 
     # resizing everything, asteroids, ufos, powerups, player, etc.
-    global resized_player_image, resized_asteroid_images, resized_ufo_image, resized_powerup_image, resized_lives_powerup_image, resized_bullet_image, resized_settings_button
-    #resized_player_image = pygame.transform.scale(player_image, (width//12, height//10))
-    #player.image = resized_player_image
-    #player.size = width//12
+    global resized_player_image, resized_asteroid_images, resized_ufo_image, resized_powerup_image, resized_lives_powerup_image, resized_bullet_image, resized_settings_button, resized_pulse_powerup_image
+    # resizing the player based on the size selected in the settings
+    global player_size, playerspeed, protected_player, thrust_spaceship
+    #print(player_size)
+    if player_size == "Small":
+        resized_player_image = pygame.transform.scale(player_image, (height//15, height//15))
+        player.size = width//15
+        player.image = resized_player_image
+        player.real_image = resized_player_image
+        player.rect = player.image.get_rect(center=(player.x, player.y))
+    elif player_size == "Normal":
+        resized_player_image = pygame.transform.scale(player_image, (height//12, height//10))
+        player.size = width//12
+        player.image = resized_player_image
+        player.real_image = resized_player_image
+        player.rect = player.image.get_rect(center=(player.x, player.y))
+        #print("normal")
+    elif player_size == "Big":
+        resized_player_image = pygame.transform.scale(player_image, (height//10, height//8))
+        player.size = width//10
+        player.image = resized_player_image
+        player.real_image = resized_player_image
+        player.rect = player.image.get_rect(center=(player.x, player.y))
+    protected_player = pygame.transform.scale(protected_player, (resized_player_image.get_width(), resized_player_image.get_height()))
+    thrust_spaceship = pygame.transform.scale(thrust_spaceship, (resized_player_image.get_width(), resized_player_image.get_height()))
+    # changing the speed of the player based on the speed selected in the settings
+    global playerspeed
+    if playerspeed == "Slow":
+        player.speed = 1
+    elif playerspeed == "Normal":
+        player.speed = 2
+    elif playerspeed == "Fast":
+        player.speed = 3
+    
+    # resizing the asteroids and the ufos and the powerups and the bullets
     resized_asteroid_images.clear()
     for asteroid_image in asteroid_images:
         resized_asteroid_image = pygame.transform.scale(asteroid_image, (height//12, height//12))
@@ -317,6 +372,7 @@ def reset():
     resized_lives_powerup_image = pygame.transform.scale(lives_powerup_image, (height//25, height//25))
     resized_bullet_image = pygame.transform.scale(bullet_image, (height//25, height//25))
     resized_settings_button = pygame.transform.scale(settings_button, (height//10, height//10))
+    resized_pulse_powerup_image = pygame.transform.scale(pulse_powerup_image, (height//25, height//25))
 
     # resizing the background
     global resized_background
@@ -399,29 +455,39 @@ for i in range((width//4)//10):
 
 # creating the player
 player_image = pygame.image.load("spaceship.png")
-resized_player_image = pygame.transform.scale(player_image, (width//12, height//10))
+resized_player_image = pygame.transform.scale(player_image, (height//12, height//10))
 player = Player(width//2, height//2, resized_player_image, width//12, "normal", 3)
 resistance = 0.7
 protected_player = pygame.image.load("protected_player.png")
 protected_player = pygame.transform.scale(protected_player, (resized_player_image.get_width(), resized_player_image.get_height()))
+thrust_spaceship = pygame.image.load("spaceship_thrust.png")
+resized_thrust_spaceship = pygame.transform.scale(thrust_spaceship, (resized_player_image.get_width(), resized_player_image.get_height()))
 angle = 0
+player_size = "Normal"
+playerspeed = "Normal"
 
 # setting up the bullets
 bullet_image = pygame.image.load("laser.png")
 resized_bullet_image = pygame.transform.scale(bullet_image, (width//25, height//25))
+bullet_speed = 5
+bullet_speed_mode = "Normal"
 
 # setting up the powerups
 # setting up the shield powerup
 powerup_image = pygame.image.load("powerup.png")
-resized_powerup_image = pygame.transform.scale(powerup_image, (width//25, height//25))
+resized_powerup_image = pygame.transform.scale(powerup_image, (height//25, height//25))
 powerups = pygame.sprite.Group()
 #setting up the lives adding powerup
 lives_powerup_image = pygame.image.load("powerup_health.png")
-resized_lives_powerup_image = pygame.transform.scale(lives_powerup_image, (width//25, height//25))
+resized_lives_powerup_image = pygame.transform.scale(lives_powerup_image, (height//25, height//25))
+# setting the pulse powerup
+pulse_powerup_image = pygame.image.load("powerup_pulse.png")
+resized_pulse_powerup_image = pygame.transform.scale(pulse_powerup_image, (height//25, height//25))
+
 number_of_powerups = 1
 
 # list of all the powerup types
-powerup_types = ["shield", "lives"]
+powerup_types = ["shield", "lives", "pulse"]
 
 # creating the bullets group
 bullets = pygame.sprite.Group()
@@ -509,7 +575,7 @@ def main():
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_w or event.key == pygame.K_s:
                     player.change_direction("")
-                if event.key == pygame.K_q or event.key == pygame.K_e:
+                if event.key == pygame.K_q or event.key == pygame.K_e or event.key == pygame.K_a or event.key == pygame.K_d:
                     angle = 0
 
         # changing the angle of the player
@@ -573,6 +639,12 @@ def main():
                     player.state = "protected"
                 elif powerup.type == "lives":
                     player.lives += 1
+                elif powerup.type == "pulse":
+                    # creating a pulse of bullets, these bullets will shoot in all angles
+                    for i in range(0, 360, 45):
+                        bullet = Bullet(player.x, player.y, i, resized_bullet_image)
+                        bullets.add(bullet)
+                        all_sprites.add(bullet)
 
         # checking if the player has hit the asteroids
         for asteroid in asteroids:
