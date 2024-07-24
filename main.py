@@ -4,6 +4,7 @@ import random
 import math
 import threading
 import tkinter
+from pygame import mixer
 # debuging imports
 import cProfile
 
@@ -29,9 +30,13 @@ class Player(pygame.sprite.Sprite):
     def draw(self):
         # rotating the player image according to the angle
         if self.state == "protected":
+            self.image = protected_player
             self.image = pygame.transform.rotate(self.image, self.angle)
         else:
-            self.image = self.real_image
+            if self.direction == "forward":
+                self.image = resized_thrust_spaceship
+            else:
+                self.image = self.real_image
             self.image = pygame.transform.rotate(self.image, self.angle)
         self.rect = self.image.get_rect(center=(self.x, self.y))
         
@@ -45,7 +50,6 @@ class Player(pygame.sprite.Sprite):
         # new movement code
         # based on the direction the player will move, player can move only forward or backward(it is easier to program)
         if self.direction == "forward":
-            self.image = thrust_spaceship
             self.horizontal_speed -= math.sin(math.radians(self.angle)) * self.speed
             self.vertical_speed -= math.cos(math.radians(self.angle)) * self.speed
         elif self.direction == "back":
@@ -170,7 +174,11 @@ def end_screen():
 
     # end screen loop
     while end:
+        global score, background_music
+        # stopping background music
+        background_music = mixer.music.stop()
         screen.fill((0, 0, 0))
+        # creating game over text and score text
         font = pygame.font.Font("freesansbold.ttf", width//25)
         text = font.render("Game Over", True, (255, 255, 255))
         text_rect = text.get_rect(center=(width//2, height//2))
@@ -178,6 +186,7 @@ def end_screen():
         text = font.render(f"Score: {score}", True, (255, 255, 255))
         text_rect = text.get_rect(center=(width//2, height//2 + 50))
         screen.blit(text, text_rect)
+        # checking for events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 end = False
@@ -189,9 +198,9 @@ def end_screen():
         pygame.display.update()
 
 # function to apply settings
-def apply_settings(window, asteroids_entry, powerups_entry, ufo_entry, playersize, player_speed, bulletspeed):
+def apply_settings(window, asteroids_entry, powerups_entry, ufo_entry, playersize, player_speed, bulletspeed, movement, lives_entry, music1):
     global settings, number_of_asteroids
-    if int(asteroids_entry) <= 0 or int(powerups_entry) < 0 or int(ufo_entry) < 0:
+    if int(asteroids_entry) <= 0 or int(powerups_entry) < 0 or int(ufo_entry) < 0 or int(lives_entry) <= 0:
         return
     else:
         # unpausing the movement of the asteroids and destroying the settings window
@@ -222,6 +231,21 @@ def apply_settings(window, asteroids_entry, powerups_entry, ufo_entry, playersiz
         elif bulletspeed == "Fast":
             bullet_speed_mode = "Fast"
             bullet_speed = 7
+        # deciding if the player can move back
+        global backwards
+        if movement == "On":
+            backwards = True
+        elif movement == "Off":
+            backwards = False
+        # changing the number of lives
+        player.lives = int(lives_entry)
+        # setting the music to on or off
+        global music
+        if music1 == "On":
+            music = True
+        elif music1 == "Off":
+            music = False
+            print(music)
 
     # resetting the game to apply the settings
     reset()
@@ -289,10 +313,40 @@ def settings_window():
     bulletspeed.set(str(bullet_speed_mode))
     bulletspeed_menu = tkinter.OptionMenu(settings_frame, bulletspeed, "Slow", "Normal", "Fast")
     bulletspeed_menu.grid(row=5, column=1)
-        # more settings will be added
+    # creating a settigns for backwards movement
+    movement_label = tkinter.Label(settings_frame, text="Backwards movement")
+    movement_label.grid(row=6, column=0)
+    movement = tkinter.StringVar()
+    if backwards:
+        movement.set("On")
+    else:
+        movement.set("Off")
+    movement_menu = tkinter.OptionMenu(settings_frame, movement, "On", "Off")
+    movement_menu.grid(row=6, column=1)
+    # setting for number of lives
+    lives_label = tkinter.Label(settings_frame, text="Number of lives")
+    lives_label.grid(row=7, column=0)
+    e4 = tkinter.StringVar()
+    e4.set(str(player.lives))
+    lives_entry = tkinter.Entry(settings_frame, textvariable=e4)
+    lives_entry.grid(row=7, column=1)
+    # settign for music
+    music_label = tkinter.Label(settings_frame, text="Music")
+    music_label.grid(row=8, column=0)
+    music1 = tkinter.StringVar()
+    music1.set("off")
+    music_menu = tkinter.OptionMenu(settings_frame, music1, "On", "Off")
+    music_menu.grid(row=8, column=1)
+    # setting for sounds
+    sounds_label = tkinter.Label(settings_frame, text="Sounds")
+    sounds_label.grid(row=9, column=0)
+    sounds = tkinter.StringVar()
+    sounds.set("On")
+    sounds_menu = tkinter.OptionMenu(settings_frame, sounds, "On", "Off")
+    sounds_menu.grid(row=9, column=1)
 
     # creating apply button
-    apply_button = tkinter.Button(window, text="Apply", command=lambda: apply_settings(window, asteroids_entry.get(), powerups_entry.get(), ufo_entry.get(), playersize.get(), player_speed.get(), bulletspeed.get()), font=("Arial", 15))
+    apply_button = tkinter.Button(window, text="Apply", command=lambda: apply_settings(window, asteroids_entry.get(), powerups_entry.get(), ufo_entry.get(), playersize.get(), player_speed.get(), bulletspeed.get(), movement.get(), lives_entry.get(), music1.get()), font=("Arial", 15))
     apply_button.pack(side="bottom")
     window.mainloop()
 
@@ -303,10 +357,12 @@ def reset():
     width = screen.get_width()
     height = screen.get_height()
     # resetting the game
-    global reset_on, player, asteroids, bullets, ufos, powerups, score, all_sprites, angle
+    global reset_on, player, asteroids, bullets, ufos, powerups, score, all_sprites, angle, background_music, music_control
     reset_on = True
     score = 0
     angle = 0
+    background_music = mixer.stop()
+    music_control = True
     # resetting the player
     player.x = width//2
     player.y = height//2
@@ -314,7 +370,6 @@ def reset():
     player.vertical_speed = 0
     player.horizontal_speed = 0
     player.state = "normal"
-    player.lives = 3
     player.direction = ""
     # resetting the asteroids
     asteroids.empty()
@@ -326,6 +381,7 @@ def reset():
     powerups.empty()
     # resetting everything
     all_sprites.empty()
+    print(music, music_control)
 
     # resizing everything, asteroids, ufos, powerups, player, etc.
     global resized_player_image, resized_asteroid_images, resized_ufo_image, resized_powerup_image, resized_lives_powerup_image, resized_bullet_image, resized_settings_button, resized_pulse_powerup_image
@@ -344,7 +400,6 @@ def reset():
         player.image = resized_player_image
         player.real_image = resized_player_image
         player.rect = player.image.get_rect(center=(player.x, player.y))
-        #print("normal")
     elif player_size == "Big":
         resized_player_image = pygame.transform.scale(player_image, (height//10, height//8))
         player.size = width//10
@@ -443,6 +498,9 @@ score = 0
 pygame.display.set_caption("Asteroids")
 icon = pygame.image.load("asteroid1.png")
 pygame.display.set_icon(icon)
+background_music = mixer.music.load("background music.mp3")
+music = True
+music_control = True
 
 # setting up all the possible spawn points outside the screen
 spawn_points = []
@@ -465,25 +523,31 @@ resized_thrust_spaceship = pygame.transform.scale(thrust_spaceship, (resized_pla
 angle = 0
 player_size = "Normal"
 playerspeed = "Normal"
+backwards = True
+ship_explosion = mixer.Sound("shipexlosion.mp3")
+asteroid_ship_collision = mixer.Sound("ship_asteroid_colision.mp3")
 
 # setting up the bullets
 bullet_image = pygame.image.load("laser.png")
 resized_bullet_image = pygame.transform.scale(bullet_image, (width//25, height//25))
 bullet_speed = 5
 bullet_speed_mode = "Normal"
+bullet_sound = mixer.Sound("laser.mp3")
 
 # setting up the powerups
 # setting up the shield powerup
 powerup_image = pygame.image.load("powerup.png")
 resized_powerup_image = pygame.transform.scale(powerup_image, (height//25, height//25))
-powerups = pygame.sprite.Group()
+shield_hit = mixer.Sound("shieldhit.mp3")
+shield_up = mixer.Sound("shield up.mp3")
 #setting up the lives adding powerup
 lives_powerup_image = pygame.image.load("powerup_health.png")
 resized_lives_powerup_image = pygame.transform.scale(lives_powerup_image, (height//25, height//25))
+powerup_collect = mixer.Sound("power up collected.mp3")
 # setting the pulse powerup
 pulse_powerup_image = pygame.image.load("powerup_pulse.png")
 resized_pulse_powerup_image = pygame.transform.scale(pulse_powerup_image, (height//25, height//25))
-
+powerups = pygame.sprite.Group()
 number_of_powerups = 1
 
 # list of all the powerup types
@@ -499,6 +563,7 @@ for asteroid_image in asteroid_images:
     resized_asteroid_image = pygame.transform.scale(asteroid_image, (width//12, height//12))
     resized_asteroid_images.append(resized_asteroid_image)
 number_of_asteroids = 10
+explosion = mixer.Sound("explosion.mp3")
 
 # creating the asteroids group
 asteroids = pygame.sprite.Group()
@@ -533,8 +598,15 @@ clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
 def main():
     global running, player, bullets, asteroids, score, asteroid_thread, ufos, powerups, settings, resized_settings_button, width, height, resized_background, reset_on
-    global clock, text, all_sprites, angle
+    global clock, text, all_sprites, angle, music, resistance, backwards, music_control
     while running:
+        # playing background music
+        if music and music_control:
+            mixer.music.play(-1)
+            music_control = False
+        elif music == False:
+            mixer.music.stop()
+            music_control = True
 
         # starting the asteroid thread
         if asteroid_thread.is_alive() == False:
@@ -556,13 +628,14 @@ def main():
                 elif event.key == pygame.K_w:
                     player.change_direction("forward")
                     
-                elif event.key == pygame.K_s:
+                elif event.key == pygame.K_s and backwards:
                     player.change_direction("back")
 
                 # other non movement key events
                 elif event.key == pygame.K_SPACE:
                     bullet = Bullet(player.x, player.y, player.angle, resized_bullet_image)
                     bullets.add(bullet)
+                    bullet_sound.play()
                 elif event.key == pygame.K_r:
                     reset()
             # checking if the settings button is pressed
@@ -622,6 +695,7 @@ def main():
                     asteroids.remove(asteroid)
                     all_sprites.remove(asteroid)
                     score += 1
+                    explosion.play()
             for ufo in ufos:
                 if bullet.rect.colliderect(ufo.rect):
                     bullets.remove(bullet)
@@ -629,6 +703,7 @@ def main():
                     all_sprites.remove(ufo)
                     all_sprites.remove(bullet)
                     score += 5
+                    explosion.play()
 
         # checking if player has hit the powerup
         for powerup in powerups:
@@ -637,14 +712,17 @@ def main():
                 all_sprites.remove(powerup)
                 if powerup.type == "shield":
                     player.state = "protected"
+                    shield_up.play()
                 elif powerup.type == "lives":
                     player.lives += 1
+                    powerup_collect.play()
                 elif powerup.type == "pulse":
                     # creating a pulse of bullets, these bullets will shoot in all angles
-                    for i in range(0, 360, 45):
+                    for i in range(0, 360, 30):
                         bullet = Bullet(player.x, player.y, i, resized_bullet_image)
                         bullets.add(bullet)
                         all_sprites.add(bullet)
+                        bullet_sound.play()
 
         # checking if the player has hit the asteroids
         for asteroid in asteroids:
@@ -654,9 +732,12 @@ def main():
                 if player.state == "protected":
                     player.state = "normal"
                     score += 1
+                    shield_hit.play()
                 elif player.lives > 1:
                     player.lives -= 1
+                    asteroid_ship_collision.play()
                 else:
+                    ship_explosion.play()
                     end_screen()
 
         # drawing the score to the top right corner
