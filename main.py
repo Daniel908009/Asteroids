@@ -42,6 +42,7 @@ class Player(pygame.sprite.Sprite):
         # drawing the player
         screen.blit(self.image, self.rect)
 
+    # function to change the direction of the player
     def change_direction(self, direction):
         self.direction = direction
 
@@ -137,42 +138,35 @@ class Ufo(pygame.sprite.Sprite):
         self.y = y
         # getting the angle of the ufo, so it can always face the player
         self.angle = math.degrees(math.atan2(player.y - self.y, player.x - self.x))
-
         self.image = resized_ufo_image
         # rotating the ufo image based on the angle
         self.image = pygame.transform.rotate(self.image, self.angle)
 
         self.rect = self.image.get_rect(center=(self.x, self.y))
-        self.destinationx = 500#random.randint(0, width)
-        self.destinationy = 300#random.randint(50, height//2)
+        self.destinationx = random.randint(0, width)
+        self.destinationy = random.randint(50, height//2)
     
     # drawing function
     def draw(self):
         screen.blit(self.image, self.rect)
     
     ## function to fire a bullet at the player 
-    #def fire(self):
-    #    self.angle = math.degrees(math.atan2(player.y - self.y, player.x - self.x))
-    #    #print(player.x, player.y, self.x, self.y)
-    #    # setting up the angle based on if the player is higher or lower than the ufo
-    #    if player.y < self.y:
-    #        self.angle += 180
-    #    #print(len(ufo_bullets))
-    #    # creating a bullet
-    #    print(self.angle)
-    #    ufo_bullet = Bullet(self.x, self.y, self.angle, resized_ufo_bullet)
-    #    ufo_bullets.add(ufo_bullet)
-    #    if sounds:
-    #        bullet_sound.play()
+    def fire(self, angle):
+        ufo_bullet = Bullet(self.x, self.y, angle+180, resized_ufo_bullet)
+        ufo_bullets.add(ufo_bullet)
+        if sounds:
+            bullet_sound.play()
 
     # moving function
     def move(self):
         # every 100 frames the ufo will change its destination
-        #if clock.get_time() % 100 == 0:
-           # self.destinationx = random.randint(0, width)
-           # self.destinationy = random.randint(50, height//2)
+        if clock.get_time() % 100 == 0:
+            self.destinationx = random.randint(0, width)
+            self.destinationy = random.randint(50, height//2)
+            if self.x > 0 and self.x < width and self.y > 0 and self.y < height and len(ufo_bullets) < 3:
+                self.fire(self.angle)
         # moving the ufo towards the coordinates of the destination
-        self.angle = math.degrees(math.atan2(player.y - self.y, player.x - self.x))
+        self.angle = math.degrees(math.atan2(player.y - self.y, player.x - self.x)) * -1 + 90
         self.image = pygame.transform.rotate(resized_ufo_image, self.angle)
         if self.x < self.destinationx:
             self.x += 1
@@ -213,7 +207,6 @@ class Powerup(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(self.x, self.y))
 
     # Functions
-
 # function to create end screen
 def end_screen():
     end = True
@@ -456,8 +449,7 @@ def reset():
     # resizing everything, asteroids, ufos, powerups, player, etc.
     global resized_player_image, resized_asteroid_images, resized_ufo_image, resized_powerup_image, resized_lives_powerup_image, resized_bullet_image, resized_settings_button, resized_pulse_powerup_image
     # resizing the player based on the size selected in the settings
-    global player_size, playerspeed, protected_player, thrust_spaceship, resized_ufo_image
-    #print(player_size)
+    global player_size, playerspeed, protected_player, thrust_spaceship, resized_ufo_image, resized_thrust_spaceship
     if player_size == "Small":
         resized_player_image = pygame.transform.scale(player_image, (height//15, height//15))
         player.size = width//15
@@ -499,6 +491,7 @@ def reset():
     resized_settings_button = pygame.transform.scale(settings_button, (height//10, height//10))
     resized_pulse_powerup_image = pygame.transform.scale(pulse_powerup_image, (height//25, height//25))
     resized_ufo_image = pygame.transform.scale(ufo_image, (height//12, height//12))
+    resized_thrust_spaceship = pygame.transform.scale(thrust_spaceship, (resized_player_image.get_width(), resized_player_image.get_height()))
 
     # resizing the background
     global resized_background
@@ -538,10 +531,7 @@ def asteroid_loop():
         rand2 = 1001
         if clock.get_time() % 200 == 0:
             rand = random.randint(0, 1000)
-            #rand2 = random.randint(0, 1000)
-            rand2 = 99
-            #for ufo in ufos:
-                #ufo.fire()
+            rand2 = random.randint(0, 1000)
         if len(powerups) < number_of_powerups and rand < chance_of_powerup:
             powerup = Powerup()
             powerups.add(powerup)
@@ -568,7 +558,6 @@ def asteroid_loop():
         # moving the ufos and firing
         for ufo in ufos:
             ufo.move()
-            #print(ufo.x, ufo.y)
         # moving the ufo bullets
         for ufo_bullet in ufo_bullets:
             ufo_bullet.move()
@@ -613,6 +602,7 @@ angle = 0
 player_size = "Normal"
 playerspeed = "Normal"
 backwards = True
+# creating sounds for the player
 ship_explosion = mixer.Sound("shipexlosion.mp3")
 asteroid_ship_collision = mixer.Sound("ship_asteroid_colision.mp3")
 
@@ -621,6 +611,7 @@ bullet_image = pygame.image.load("laser.png")
 resized_bullet_image = pygame.transform.scale(bullet_image, (width//25, height//25))
 bullet_speed = 5
 bullet_speed_mode = "Normal"
+# creating sounds for bullets
 bullet_sound = mixer.Sound("laser.mp3")
 
 # setting up the powerups
@@ -653,6 +644,7 @@ for asteroid_image in asteroid_images:
     resized_asteroid_image = pygame.transform.scale(asteroid_image, (width//12, height//12))
     resized_asteroid_images.append(resized_asteroid_image)
 number_of_asteroids = 10
+# creating sounds for asteroids
 explosion = mixer.Sound("explosion.mp3")
 
 # creating the asteroids group
@@ -665,6 +657,7 @@ asteroid_thread = threading.Thread(target=asteroid_loop)
 ufo_image = pygame.image.load("ufo.png")
 resized_ufo_image = pygame.transform.scale(ufo_image, (width//12, height//12))
 chance_of_ufo = 100
+# ufo sounds
 ufo_ariving = mixer.Sound("ufo_arival.mp3")
 ufo_explosion = mixer.Sound("ufo_explosion.mp3")
 ufo_bullet = pygame.image.load("ufo_laser.png")
@@ -693,7 +686,7 @@ clock = pygame.time.Clock()
 all_sprites = pygame.sprite.Group()
 def main():
     global running, player, bullets, asteroids, score, asteroid_thread, ufos, powerups, settings, resized_settings_button, width, height, resized_background, reset_on
-    global clock, text, all_sprites, angle, music, resistance, backwards, music_control, music, sounds
+    global clock, text, all_sprites, angle, resistance, backwards, sounds
     while running:
 
         # starting the asteroid thread
@@ -734,6 +727,7 @@ def main():
                     if pos[0] >= width - resized_settings_button.get_width() and pos[1] >= height - resized_settings_button.get_height():
                         settings = True
                         settings_window()
+            # when a key is released then the ship will start to slow down, or stop rotating
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_w or event.key == pygame.K_s:
                     player.change_direction("")
@@ -822,6 +816,7 @@ def main():
                         all_sprites.add(bullet)
                         if sounds:
                             bullet_sound.play()
+
         # checking if ufo bullet hit player
         for ufobullet in ufo_bullets:
             if player.rect.colliderect(ufobullet.rect):
@@ -840,6 +835,34 @@ def main():
                     if sounds:
                         ship_explosion.play()
                     end_screen()
+
+        # checking if player hit the ufo 
+        for ufo in ufos:
+            if player.rect.colliderect(ufo.rect):
+                ufos.remove(ufo)
+                all_sprites.remove(ufo)
+                if player.state == "protected":
+                    player.state = "normal"
+                    score += 5
+                    if sounds:
+                        shield_hit.play()
+                elif player.lives > 1:
+                    player.lives -= 1
+                    if sounds:
+                        asteroid_ship_collision.play()
+                else:
+                    if sounds:
+                        ship_explosion.play()
+                    end_screen()
+        
+        # checking if ufo and player bullets colided
+        for bullet in bullets:
+            for ufobullet in ufo_bullets:
+                if bullet.rect.colliderect(ufobullet.rect):
+                    bullets.remove(bullet)
+                    ufo_bullets.remove(ufobullet)
+                    all_sprites.remove(bullet)
+                    all_sprites.remove(ufobullet)
 
 
         # checking if the player has hit the asteroids
