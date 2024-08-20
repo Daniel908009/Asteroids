@@ -16,14 +16,14 @@ r - reset game <br>
 <h2>Using graphic UI</h2>
 <h3>Downloading EXE <h3>
 First make sure you have the latest release version selected <br>
- <br>
+(https://github.com/user-attachments/assets/b8183985-4e9a-45cf-80df-2f4271f3067e) <br>
 Then click on download exe file and wait until it downloads <br>
-<br>
+(https://github.com/user-attachments/assets/a7a4fe7e-0bad-4e9e-89eb-9f9fd53068de) <br>
 After its downloaded you can find it through file explorer or the browser it self. <br>
 Enjoy!<br>
 <h3>Downloading source code <h3>
 First click on the code button as shown in the picture bellow, then click the option Download ZIP <br>
- <br>
+(https://github.com/user-attachments/assets/6f27bdbc-2492-486c-b5d1-5f46b098a69e) <br>
 After its downloaded you can find it on your computer through file explorer. After you have found it right click it, it should display option called "Extract" <br>
 Click on it and wait a moment. A new directory should appear containing all the files neccesary for the game.<br>
 Now open a console and enter the folowing code: pip install -r /path/to/requirements.txt <br>
@@ -39,4 +39,6 @@ Now open a console and enter the folowing code: pip install -r /path/to/requirem
 *Replace the /path/to/requirements.txt with the actual path. <br>
 Enjoy the game! <br>
 <h1>Screenshots of the game</h1>
- <br>
+(https://github.com/user-attachments/assets/90d0df81-a03a-4a8b-9470-9d9e6f9d3a9b) <br>
+(https://github.com/user-attachments/assets/acb93762-0c8d-4e01-a085-9fd14af4a6cb)
+
