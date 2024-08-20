@@ -5,7 +5,12 @@ import math
 import threading
 import tkinter
 from pygame import mixer
-
+import os
+import sys
+if hasattr(sys, '_MEIPASS'):
+    base_path = sys._MEIPASS
+else:
+    base_path = os.path.abspath(".")
     # Classes
 # player class
 class Player(pygame.sprite.Sprite):
@@ -308,7 +313,7 @@ def settings_window():
     window.title("Settings")
     window.geometry("600x400")
     window.resizable(False, False)
-    window.iconbitmap("settings_icon.ico")
+    window.iconbitmap(os.path.join(base_path, "settings_icon.ico"))
     # creating a main label
     main_label = tkinter.Label(window, text="Settings", font=("Arial", 20))
     main_label.pack()
@@ -574,9 +579,9 @@ reset_on = False
 score = 0
 # setting up the title and icon
 pygame.display.set_caption("Asteroids")
-icon = pygame.image.load("asteroid1.png")
+icon = pygame.image.load(os.path.join(base_path, "asteroid1.png"))
 pygame.display.set_icon(icon)
-background_music = mixer.music.load("background music.mp3")
+background_music = mixer.music.load(os.path.join(base_path, "background music.mp3"))
 background_music = mixer.music.play(-1)
 sounds = True
 
@@ -590,42 +595,42 @@ for i in range((width//4)//10):
         spawn_points.append((i*10, -height+j*10))
 
 # creating the player
-player_image = pygame.image.load("spaceship.png")
+player_image = pygame.image.load(os.path.join(base_path, "spaceship.png"))
 resized_player_image = pygame.transform.scale(player_image, (height//12, height//10))
 player = Player(width//2, height//2, resized_player_image, width//12, "normal", 3)
 resistance = 0.7
-protected_player = pygame.image.load("protected_player.png")
+protected_player = pygame.image.load(os.path.join(base_path,"protected_player.png"))
 protected_player = pygame.transform.scale(protected_player, (resized_player_image.get_width(), resized_player_image.get_height()))
-thrust_spaceship = pygame.image.load("spaceship_thrust.png")
+thrust_spaceship = pygame.image.load(os.path.join(base_path, "spaceship_thrust.png"))
 resized_thrust_spaceship = pygame.transform.scale(thrust_spaceship, (resized_player_image.get_width(), resized_player_image.get_height()))
 angle = 0
 player_size = "Normal"
 playerspeed = "Normal"
 backwards = True
 # creating sounds for the player
-ship_explosion = mixer.Sound("shipexlosion.mp3")
-asteroid_ship_collision = mixer.Sound("ship_asteroid_colision.mp3")
+ship_explosion = mixer.Sound(os.path.join(base_path, "shipexlosion.mp3"))
+asteroid_ship_collision = mixer.Sound(os.path.join(base_path, "ship_asteroid_colision.mp3"))
 
 # setting up the bullets
-bullet_image = pygame.image.load("laser.png")
+bullet_image = pygame.image.load(os.path.join(base_path, "laser.png"))
 resized_bullet_image = pygame.transform.scale(bullet_image, (width//25, height//25))
 bullet_speed = 5
 bullet_speed_mode = "Normal"
 # creating sounds for bullets
-bullet_sound = mixer.Sound("laser.mp3")
+bullet_sound = mixer.Sound(os.path.join(base_path,"laser.mp3"))
 
 # setting up the powerups
 # setting up the shield powerup
-powerup_image = pygame.image.load("powerup.png")
+powerup_image = pygame.image.load(os.path.join(base_path, "powerup.png"))
 resized_powerup_image = pygame.transform.scale(powerup_image, (height//25, height//25))
-shield_hit = mixer.Sound("shieldhit.mp3")
-shield_up = mixer.Sound("shield up.mp3")
+shield_hit = mixer.Sound(os.path.join(base_path, "shieldhit.mp3"))
+shield_up = mixer.Sound(os.path.join(base_path, "shield up.mp3"))
 #setting up the lives adding powerup
-lives_powerup_image = pygame.image.load("powerup_health.png")
+lives_powerup_image = pygame.image.load(os.path.join(base_path, "powerup_health.png"))
 resized_lives_powerup_image = pygame.transform.scale(lives_powerup_image, (height//25, height//25))
-powerup_collect = mixer.Sound("power up collected.mp3")
+powerup_collect = mixer.Sound(os.path.join(base_path, "power up collected.mp3"))
 # setting the pulse powerup
-pulse_powerup_image = pygame.image.load("powerup_pulse.png")
+pulse_powerup_image = pygame.image.load(os.path.join(base_path, "powerup_pulse.png"))
 resized_pulse_powerup_image = pygame.transform.scale(pulse_powerup_image, (height//25, height//25))
 powerups = pygame.sprite.Group()
 number_of_powerups = 1
@@ -638,14 +643,14 @@ powerup_types = ["shield", "lives", "pulse"]
 bullets = pygame.sprite.Group()
 
 # setting up the asteroids
-asteroid_images = [pygame.image.load("asteroid1.png"), pygame.image.load("asteroid2.png"), pygame.image.load("asteroid3.png"), pygame.image.load("asteroid4.png")]
+asteroid_images = [pygame.image.load(os.path.join(base_path,"asteroid1.png")), pygame.image.load(os.path.join(base_path,"asteroid2.png")), pygame.image.load(os.path.join(base_path,"asteroid3.png")), pygame.image.load(os.path.join(base_path,"asteroid4.png"))]
 resized_asteroid_images = []
 for asteroid_image in asteroid_images:
     resized_asteroid_image = pygame.transform.scale(asteroid_image, (width//12, height//12))
     resized_asteroid_images.append(resized_asteroid_image)
 number_of_asteroids = 10
 # creating sounds for asteroids
-explosion = mixer.Sound("explosion.mp3")
+explosion = mixer.Sound(os.path.join(base_path, "explosion.mp3"))
 
 # creating the asteroids group
 asteroids = pygame.sprite.Group()
@@ -654,13 +659,13 @@ asteroids = pygame.sprite.Group()
 asteroid_thread = threading.Thread(target=asteroid_loop)
 
 # setting up the ufos
-ufo_image = pygame.image.load("ufo.png")
+ufo_image = pygame.image.load(os.path.join(base_path, "ufo.png"))
 resized_ufo_image = pygame.transform.scale(ufo_image, (width//12, height//12))
 chance_of_ufo = 100
 # ufo sounds
-ufo_ariving = mixer.Sound("ufo_arival.mp3")
-ufo_explosion = mixer.Sound("ufo_explosion.mp3")
-ufo_bullet = pygame.image.load("ufo_laser.png")
+ufo_ariving = mixer.Sound(os.path.join(base_path, "ufo_arival.mp3"))
+ufo_explosion = mixer.Sound(os.path.join(base_path, "ufo_explosion.mp3"))
+ufo_bullet = pygame.image.load(os.path.join(base_path, "ufo_laser.png"))
 resized_ufo_bullet = pygame.transform.scale(ufo_bullet, (width//25, height//25))
 ufo_bullets = pygame.sprite.Group()
 
@@ -668,12 +673,12 @@ ufo_bullets = pygame.sprite.Group()
 ufos = pygame.sprite.Group()
 
 # setting up settings button
-settings_button = pygame.image.load("settings.png")
+settings_button = pygame.image.load(os.path.join(base_path, "settings.png"))
 resized_settings_button = pygame.transform.scale(settings_button, (height//10, height//10))
 settings = False
 
 # setting up the background image
-background = pygame.image.load("background.jpeg")
+background = pygame.image.load(os.path.join(base_path,"background.jpeg"))
 resized_background = pygame.transform.scale(background, (width, height))
 
 # setting up the score and lives font
